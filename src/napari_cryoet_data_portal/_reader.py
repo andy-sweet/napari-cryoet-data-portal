@@ -101,6 +101,7 @@ def read_tomogram(tomogram: Tomogram) -> FullLayerData:
     """
     data, attributes, layer_type = read_tomogram_ome_zarr(tomogram.https_omezarr_dir)
     attributes["name"] = tomogram.name
+    #attributes["scale"] = tomogram.voxel_spacing
     attributes["metadata"] = tomogram.to_dict()
     return data, attributes, layer_type
 
@@ -202,6 +203,7 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     else:
         attributes["name"] = f"{tomogram.name}-{name}"
     attributes["metadata"] = annotation.to_dict()
+    #attributes["scale"] = annotation.tomogram_voxel_spacing.voxel_spacing
     attributes["face_color"] = OBJECT_COLOR.get(name.lower(), DEFAULT_OBJECT_COLOR)
     return data, attributes, layer_type
 
