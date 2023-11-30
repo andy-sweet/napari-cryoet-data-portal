@@ -149,12 +149,15 @@ class OpenWidget(QGroupBox):
         # Materialize low resolution immediately on this thread to prevent napari blocking.
         if resolution is LOW_RESOLUTION:
             image_data = np.asarray(image_data)
+        # Scale should be defined in Angstroms.
+        image_scale = image_attrs["scale"]
+        # Translate may not be defined.
+        image_translate = image_attrs.get("translate", (0,) * len(image_scale))
         image_attrs["scale"] = tuple(
-            tomogram.voxel_spacing * resolution.scale * s for s in image_attrs["scale"]
+            resolution.scale_in_angstroms(s) for s in image_scale
         )
-        image_translate = image_attrs.get("translate", (0,) * len(image_attrs["scale"]))
         image_attrs["translate"] = tuple(
-            resolution.offset_in_angstroms(tomogram.voxel_spacing) + t for t in image_translate
+            resolution.offset_in_angstroms(image_scale[i]) + t for i, t in enumerate(image_translate)
         )
         yield image_data, image_attrs, "image"
 
@@ -168,9 +171,7 @@ class OpenWidget(QGroupBox):
         )
 
         for annotation in annotations:
-            points_data, points_attrs, _ = read_annotation(annotation, tomogram=tomogram)
-            points_attrs["scale"] = (tomogram.voxel_spacing,) * 3
-            yield points_data, points_attrs, "points"
+            yield read_annotation(annotation, tomogram=tomogram)
 
     def _onLayerLoaded(self, layer_data: FullLayerData) -> None:
         logger.debug("OpenWidget._onLayerLoaded")
