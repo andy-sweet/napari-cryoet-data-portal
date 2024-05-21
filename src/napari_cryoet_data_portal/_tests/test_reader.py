@@ -1,7 +1,7 @@
-import pytest
 from typing import Callable
 
 import numpy as np
+import pytest
 from cryoet_data_portal import Annotation
 from napari import Viewer
 from napari.layers import Points
@@ -15,7 +15,9 @@ from napari_cryoet_data_portal._reader import (
 
 CLOUDFRONT_URI = "https://files.cryoetdataportal.cziscience.com"
 TOMOGRAM_DIR = f"{CLOUDFRONT_URI}/10000/TS_026/Tomograms/VoxelSpacing13.480"
-ANNOTATION_FILE = f"{TOMOGRAM_DIR}/Annotations/101-cytosolic_ribosome-1.0_point.ndjson"
+ANNOTATION_FILE = (
+    f"{TOMOGRAM_DIR}/Annotations/101-cytosolic_ribosome-1.0_point.ndjson"
+)
 
 
 def test_read_tomogram_ome_zarr():
@@ -27,7 +29,9 @@ def test_read_tomogram_ome_zarr():
     assert data[0].shape == (1000, 928, 960)
     assert data[1].shape == (500, 464, 480)
     assert data[2].shape == (250, 232, 240)
-    np.testing.assert_allclose(attrs["scale"], (13.48, 13.48, 13.48), atol=0.01)
+    np.testing.assert_allclose(
+        attrs["scale"], (13.48, 13.48, 13.48), atol=0.01
+    )
     assert layer_type == "image"
 
 

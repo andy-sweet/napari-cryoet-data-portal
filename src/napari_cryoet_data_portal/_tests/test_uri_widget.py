@@ -34,8 +34,12 @@ def test_click_connect_when_uri_exists(widget: UriWidget, qtbot: QtBot):
     assert not widget._progress.isVisibleTo(widget)
 
 
-@pytest.mark.skip(reason="https://github.com/chanzuckerberg/cryoet-data-portal/issues/16")
-def test_click_connect_when_uri_does_not_exist(widget: UriWidget, qtbot: QtBot):
+@pytest.mark.skip(
+    reason="https://github.com/chanzuckerberg/cryoet-data-portal/issues/16"
+)
+def test_click_connect_when_uri_does_not_exist(
+    widget: UriWidget, qtbot: QtBot
+):
     widget._uri_edit.setText("https://not.a.graphl.url/v1/graphql")
 
     with qtbot.captureExceptions() as exceptions:

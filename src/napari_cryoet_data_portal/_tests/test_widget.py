@@ -1,7 +1,6 @@
 from typing import Callable, List, Tuple
 
 import pytest
-from cryoet_data_portal import Client
 from napari import Viewer
 from napari.components import ViewerModel
 from pytest_mock import MockerFixture
@@ -61,13 +60,17 @@ def test_listing_item_changed_to_none(widget: DataPortalWidget):
     )
 
 
-def test_connected_loads_listing(widget: DataPortalWidget, mocker: MockerFixture):
-    mocker.patch.object(widget._listing, 'load')
-    filter = DatasetFilter()
+def test_connected_loads_listing(
+    widget: DataPortalWidget, mocker: MockerFixture
+):
+    mocker.patch.object(widget._listing, "load")
+    data_filter = DatasetFilter()
 
-    widget._uri.connected.emit(GRAPHQL_URI, filter)
+    widget._uri.connected.emit(GRAPHQL_URI, data_filter)
 
-    widget._listing.load.assert_called_once_with(GRAPHQL_URI, filter=filter)
+    widget._listing.load.assert_called_once_with(
+        GRAPHQL_URI, data_filter=data_filter
+    )
 
 
 def test_disconnected_only_shows_uri(widget: DataPortalWidget):
@@ -76,6 +79,5 @@ def test_disconnected_only_shows_uri(widget: DataPortalWidget):
     widget._uri.disconnected.emit()
 
     assert all(
-        w.isVisibleTo(widget) == (w is widget._uri)
-        for w in sub_widgets
+        w.isVisibleTo(widget) == (w is widget._uri) for w in sub_widgets
     )

@@ -1,11 +1,11 @@
 from typing import Any, Dict, Optional, Union
 
+from cryoet_data_portal import Dataset, Tomogram
 from qtpy.QtWidgets import (
     QGroupBox,
     QVBoxLayout,
     QWidget,
 )
-from cryoet_data_portal import Dataset, Tomogram
 
 from napari_cryoet_data_portal._logging import logger
 from napari_cryoet_data_portal._progress_widget import ProgressWidget

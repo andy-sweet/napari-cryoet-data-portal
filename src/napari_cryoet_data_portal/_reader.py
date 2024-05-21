@@ -2,15 +2,15 @@
 
 import warnings
 from typing import Any, Dict, Generator, List, Optional, Tuple
-import fsspec
 
-import numpy as np
+import fsspec
 import ndjson
+import numpy as np
+from cmap import Colormap
+from cryoet_data_portal import Annotation, AnnotationFile, Tomogram
+from napari.utils.colormaps import direct_colormap
 from napari_ome_zarr import napari_get_reader
 from npe2.types import FullLayerData, PathOrPaths, ReaderFunction
-from cryoet_data_portal import Annotation, AnnotationFile, Tomogram
-from cmap import Colormap
-from napari.utils.colormaps import direct_colormap
 
 from napari_cryoet_data_portal._logging import logger
 
@@ -25,7 +25,11 @@ def _annotation_color(annotation: Annotation) -> np.ndarray:
     try:
         object_id = int(annotation.object_id.split(":")[-1])
     except RuntimeError as e:
-        logger.error("Failed to parse integer from object_id: %s\%s", annotation.object_id, e)
+        logger.error(
+            "Failed to parse integer from object_id: %s\\%s",
+            annotation.object_id,
+            e,
+        )
         return DEFAULT_OBJECT_COLOR
     color = OBJECT_COLORMAP(object_id % len(OBJECT_COLORMAP.color_stops))
     return np.array(color.rgba)
@@ -113,7 +117,9 @@ def read_tomogram(tomogram: Tomogram) -> FullLayerData:
     >>> data, attrs, _ = read_tomogram(tomogram)
     >>> image = Image(data, **attrs)
     """
-    data, attributes, layer_type = read_tomogram_ome_zarr(tomogram.https_omezarr_dir)
+    data, attributes, layer_type = read_tomogram_ome_zarr(
+        tomogram.https_omezarr_dir
+    )
     attributes["name"] = tomogram.name
     attributes["metadata"] = tomogram.to_dict()
     return data, attributes, layer_type
@@ -149,7 +155,9 @@ def points_annotations_reader(path: PathOrPaths) -> Optional[ReaderFunction]:
     return _read_many_points_annotations_ndjson
 
 
-def _read_many_points_annotations_ndjson(paths: PathOrPaths) -> List[FullLayerData]:
+def _read_many_points_annotations_ndjson(
+    paths: PathOrPaths,
+) -> List[FullLayerData]:
     if isinstance(paths, str):
         paths = [paths]
     return [read_points_annotations_ndjson(p) for p in paths]
@@ -188,7 +196,9 @@ def read_points_annotations_ndjson(path: str) -> FullLayerData:
     return data, attributes, "points"
 
 
-def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = None) -> FullLayerData:
+def read_annotation(
+    annotation: Annotation, *, tomogram: Optional[Tomogram] = None
+) -> FullLayerData:
     """Reads a napari points layer from an annotation.
 
     Parameters
@@ -214,15 +224,17 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     warnings.warn(
         "read_annotation is deprecated from v0.4.0 because of Annotation schema changes. "
         "Use read_annotation_files instead.",
-        category=DeprecationWarning)
+        category=DeprecationWarning,
+        stacklevel=1,
+    )
     point_paths = tuple(
-        f.https_path
-        for f in annotation.files
-        if f.shape_type == "Point"
+        f.https_path for f in annotation.files if f.shape_type == "Point"
     )
     if len(point_paths) > 1:
         logger.warn("Found more than one points annotation. Using the first.")
-    data, attributes, layer_type = read_points_annotations_ndjson(point_paths[0])
+    data, attributes, layer_type = read_points_annotations_ndjson(
+        point_paths[0]
+    )
     name = annotation.object_name
     if tomogram is None:
         attributes["name"] = name
@@ -233,7 +245,9 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     return data, attributes, layer_type
 
 
-def read_annotation_files(annotation: Annotation, *, tomogram: Optional[Tomogram] = None) -> Generator[FullLayerData, None, None]:
+def read_annotation_files(
+    annotation: Annotation, *, tomogram: Optional[Tomogram] = None
+) -> Generator[FullLayerData, None, None]:
     """Reads multiple annotation layers.
 
     Parameters
@@ -257,18 +271,35 @@ def read_annotation_files(annotation: Annotation, *, tomogram: Optional[Tomogram
             layer = Layer.create(data, attrs, typ)
     """
     for f in annotation.files:
-        if (f.shape_type in ("Point", "OrientedPoint")) and (f.format == "ndjson"):
-            yield _read_points_annotation_file(f, anno=annotation, tomogram=tomogram)
+        if (f.shape_type in ("Point", "OrientedPoint")) and (
+            f.format == "ndjson"
+        ):
+            yield _read_points_annotation_file(
+                f, anno=annotation, tomogram=tomogram
+            )
         elif (f.shape_type == "SegmentationMask") and (f.format == "zarr"):
-            yield _read_labels_annotation_file(f, anno=annotation, tomogram=tomogram)
+            yield _read_labels_annotation_file(
+                f, anno=annotation, tomogram=tomogram
+            )
         else:
-            logger.warn("Found unsupported annotation file: %s, %s. Skipping.", f.shape_type, f.format)
+            logger.warn(
+                "Found unsupported annotation file: %s, %s. Skipping.",
+                f.shape_type,
+                f.format,
+            )
 
 
-def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
+def _read_points_annotation_file(
+    anno_file: AnnotationFile,
+    *,
+    anno: Annotation,
+    tomogram: Optional[Tomogram],
+) -> FullLayerData:
     assert anno_file.shape_type in ("Point", "OrientedPoint")
     assert anno_file.format == "ndjson"
-    data, attributes, layer_type = read_points_annotations_ndjson(anno_file.https_path)
+    data, attributes, layer_type = read_points_annotations_ndjson(
+        anno_file.https_path
+    )
     name = anno.object_name
     if tomogram is None:
         attributes["name"] = name
@@ -279,7 +310,12 @@ def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation,
     return data, attributes, layer_type
 
 
-def _read_labels_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
+def _read_labels_annotation_file(
+    anno_file: AnnotationFile,
+    *,
+    anno: Annotation,
+    tomogram: Optional[Tomogram],
+) -> FullLayerData:
     assert anno_file.shape_type == "SegmentationMask"
     assert anno_file.format == "zarr"
     data, attributes, _ = read_tomogram_ome_zarr(anno_file.https_path)
@@ -290,10 +326,12 @@ def _read_labels_annotation_file(anno_file: AnnotationFile, *, anno: Annotation,
         attributes["name"] = f"{tomogram.name}-{name}"
     attributes["metadata"] = anno_file.to_dict()
     attributes["opacity"] = 0.5
-    attributes["colormap"] = direct_colormap({
-        None: np.zeros(4),
-        1: _annotation_color(anno),
-    })
+    attributes["colormap"] = direct_colormap(
+        {
+            None: np.zeros(4),
+            1: _annotation_color(anno),
+        }
+    )
     return data, attributes, "labels"
 
 
