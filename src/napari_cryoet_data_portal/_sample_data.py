@@ -4,7 +4,7 @@ import numpy as np
 from cryoet_data_portal import AnnotationFile, Client, Tomogram, TomogramVoxelSpacing
 from npe2.types import FullLayerData
 
-from napari_cryoet_data_portal import read_annotation, read_tomogram
+from napari_cryoet_data_portal import read_tomogram
 from napari_cryoet_data_portal._reader import read_annotation_file
 
 
@@ -43,18 +43,18 @@ def _read_tomogram_from_10000(name: str) -> List[FullLayerData]:
         ])
     )
 
-    ribosome_annotations = [
+    ribosome_anno_file = [
         f
         for f in anno_files
         if "cytosolic ribosome" in f.annotation_shape.annotation.object_name.lower()
     ].pop()
-    fas_annotations = [
+    fas_anno_file = [
         f
         for f in anno_files
         if "fatty acid synthase" in f.annotation_shape.annotation.object_name.lower()
     ].pop()
-    ribosome_points = read_annotation_file(ribosome_annotations, tomogram=tomogram)
-    fatty_acid_points = read_annotation_file(fas_annotations, tomogram=tomogram)
+    ribosome_points = read_annotation_file(ribosome_anno_file, tomogram=tomogram)
+    fatty_acid_points = read_annotation_file(fas_anno_file, tomogram=tomogram)
 
     return [
         tomogram_image,

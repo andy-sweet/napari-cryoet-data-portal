@@ -25,8 +25,7 @@ class DatasetFilter:
         for dataset in Dataset.find(client, gql_filters):
             tomograms: List[Tomogram] = []
             for run in dataset.runs:
-                for spacing in run.tomogram_voxel_spacings:
-                    tomograms.extend(spacing.tomograms)
+                tomograms.extend(run.tomograms)
             yield dataset, tomograms
 
 
@@ -41,8 +40,7 @@ class RunFilter:
         for run in Run.find(client, gql_filters):
             dataset = run.dataset
             datasets[dataset.id] = dataset
-            for spacing in run.tomogram_voxel_spacings:
-                tomograms[dataset.id].extend(spacing.tomograms)
+            tomograms[dataset.id].extend(run.tomograms)
         for i in datasets:
             yield datasets[i], tomograms[i]
 
@@ -72,7 +70,7 @@ class TomogramFilter:
         tomograms: Dict[int, List[Tomogram]] = defaultdict(list)
         gql_filters = _ids_to_gql(Tomogram.id, self.ids)
         for tomogram in Tomogram.find(client, gql_filters):
-            dataset = tomogram.tomogram_voxel_spacing.run.dataset
+            dataset = tomogram.run.dataset
             datasets[dataset.id] = dataset
             tomograms[dataset.id].append(tomogram)
         for i in datasets:

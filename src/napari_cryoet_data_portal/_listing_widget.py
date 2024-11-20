@@ -1,4 +1,4 @@
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (

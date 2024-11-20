@@ -14,12 +14,12 @@ from napari_cryoet_data_portal._reader import (
 )
 
 CLOUDFRONT_URI = "https://files.cryoetdataportal.cziscience.com"
-TOMOGRAM_DIR = f"{CLOUDFRONT_URI}/10000/TS_026/Tomograms/VoxelSpacing13.480"
-ANNOTATION_FILE = f"{TOMOGRAM_DIR}/Annotations/101-cytosolic_ribosome-1.0_point.ndjson"
+TOMOGRAM_DIR = f"{CLOUDFRONT_URI}/10000/TS_026/Reconstructions/VoxelSpacing13.480"
+ANNOTATION_FILE = f"{TOMOGRAM_DIR}/Annotations/101/cytosolic_ribosome-1.0_point.ndjson"
 
 
 def test_read_tomogram_ome_zarr():
-    uri = f"{TOMOGRAM_DIR}/CanonicalTomogram/TS_026.zarr"
+    uri = f"{TOMOGRAM_DIR}/Tomograms/100/TS_026.zarr"
 
     data, attrs, layer_type = read_tomogram_ome_zarr(uri)
 

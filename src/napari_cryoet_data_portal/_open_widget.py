@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Generator, Optional, Tuple
 
 import numpy as np
-from cryoet_data_portal import Annotation, Client, Tomogram
+from cryoet_data_portal import AnnotationFile, Client, Tomogram
 from npe2.types import FullLayerData
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
@@ -20,7 +20,7 @@ from qtpy.QtWidgets import (
 from napari_cryoet_data_portal._logging import logger
 from napari_cryoet_data_portal._progress_widget import ProgressWidget
 from napari_cryoet_data_portal._reader import (
-    read_annotation_files,
+    read_annotation_file,
     read_tomogram,
 )
 
@@ -135,20 +135,18 @@ class OpenWidget(QGroupBox):
         image_scale = image_layer[1]["scale"]
         yield _handle_image_at_resolution(image_layer, resolution)
 
-        # Looking up tomogram.tomogram_voxel_spacing.annotations triggers a query
-        # using the client from where the tomogram was found.
         # A single client is not thread safe, so we need a new instance for each query.
         client = Client(self._uri)
-        annotations = Annotation.find(
+        anno_files = AnnotationFile.find(
             client,
             [
-                Annotation.tomogram_voxel_spacing_id
+                AnnotationFile.tomogram_voxel_spacing_id
                 == tomogram.tomogram_voxel_spacing_id
-            ],
+            ]
         )
 
-        for annotation in annotations:
-            for layer in read_annotation_files(annotation, tomogram=tomogram):
+        for anno_file in anno_files:
+            if layer := read_annotation_file(anno_file, tomogram=tomogram):
                 if layer[2] == "labels":
                     layer = _handle_image_at_resolution(layer, resolution)
                 elif layer[2] == "points":

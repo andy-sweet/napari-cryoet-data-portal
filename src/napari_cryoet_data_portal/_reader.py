@@ -214,11 +214,12 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
         "read_annotation is deprecated from v0.4.0 because of Annotation schema changes. "
         "Use read_annotation_files instead.",
         category=DeprecationWarning)
-    point_paths = tuple(
-        f.https_path
-        for f in annotation.files
-        if f.shape_type == "Point"
-    )
+    point_paths = []
+    for s in annotation.annotation_shapes:
+        if s.shape_type != "Point":
+            continue
+        for f in s.annotation_files:
+            point_paths.append(f.https_path)
     if len(point_paths) > 1:
         logger.warn("Found more than one points annotation. Using the first.")
     data, attributes, layer_type = read_points_annotations_ndjson(point_paths[0])
