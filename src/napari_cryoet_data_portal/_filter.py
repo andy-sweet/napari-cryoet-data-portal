@@ -23,9 +23,7 @@ class DatasetFilter:
     def load(self, client: Client) -> Generator[Tuple[Dataset, List[Tomogram]], None, None]:
         gql_filters = _ids_to_gql(Dataset.id, self.ids)
         for dataset in Dataset.find(client, gql_filters):
-            tomograms: List[Tomogram] = []
-            for run in dataset.runs:
-                tomograms.extend(run.tomograms)
+            tomograms = Tomogram.find(client, [Tomogram.run.dataset_id == dataset.id])
             yield dataset, tomograms
 
 
