@@ -1,6 +1,6 @@
 import pytest
 
-from cryoet_data_portal import Annotation, AnnotationShape, Client, Dataset, Tomogram
+from cryoet_data_portal import Annotation, AnnotationFile, AnnotationShape, Client, Dataset, Tomogram
 
 
 @pytest.fixture()
@@ -30,3 +30,11 @@ def annotation_with_points(client: Client) -> Annotation:
         AnnotationShape.shape_type == "Point"
     ]).pop()
     return anno_shape.annotation
+
+
+@pytest.fixture()
+def annotation_file_with_points(client: Client) -> AnnotationFile:
+    anno_file = AnnotationFile.find(client, [
+        AnnotationFile.annotation_shape.shape_type == "Point"
+    ]).pop()
+    return anno_file

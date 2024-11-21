@@ -212,7 +212,7 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     """
     warnings.warn(
         "read_annotation is deprecated from v0.4.0 because of Annotation schema changes. "
-        "Use read_annotation_files instead.",
+        "Use read_annotation_file instead.",
         category=DeprecationWarning)
     point_paths = []
     for s in annotation.annotation_shapes:
@@ -244,7 +244,7 @@ def read_annotation_files(annotation: Annotation, *, tomogram: Optional[Tomogram
         The associated tomogram, which may be used for other metadata.
 
     Yields
-    -------
+    ------
     napari layer data tuple
         The data, attributes, and type name of the layer that would be
         returned by `Points.as_layer_data_tuple` or `Labels.as_layer_data_tuple`.
@@ -256,21 +256,49 @@ def read_annotation_files(annotation: Annotation, *, tomogram: Optional[Tomogram
     >>> for data, attrs, typ in read_annotation_files(annotation):
             layer = Layer.create(data, attrs, typ)
     """
+    warnings.warn(
+        "read_annotation is deprecated from v0.4.0 because of Annotation schema changes. "
+        "Use read_annotation_file instead.",
+        category=DeprecationWarning)
     for s in annotation.annotation_shapes:
         for f in s.annotation_files:
             if layer_data := read_annotation_file(f, tomogram=tomogram):
                 yield layer_data
 
 
-def read_annotation_file(anno_file: AnnotationFile, *, tomogram: Optional[Tomogram]) -> Optional[FullLayerData]:
-    shape = anno_file.annotation_shape
+def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[Tomogram] = None) -> Optional[FullLayerData]:
+    """Reads a layer from an annotation file.
+
+    Parameters
+    ----------
+    annotation_file : AnnotationFile
+        The tomogram annotation file.
+    tomogram : Tomogram, optional
+        The associated tomogram, which may be used for other metadata.
+
+    Returns
+    -------
+    napari layer data tuple
+        The data, attributes, and type name of the layer that would be
+        returned by `Points.as_layer_data_tuple` or `Labels.as_layer_data_tuple`.
+
+    Examples
+    --------
+    >>> client = Client()
+    >>> annotation_file = client.find_one(AnnotationFile)
+    >>> if layer_data := read_annotation_file(annotation_file):
+            layer = Layer.create(*layer_data)
+    """
+    shape = annotation_file.annotation_shape
+    shape_type = shape.shape_type
     anno = shape.annotation
-    if (shape.shape_type in ("Point", "OrientedPoint")) and (anno_file.format == "ndjson"):
-        return _read_points_annotation_file(anno_file, anno=anno, tomogram=tomogram)
-    elif (shape.shape_type == "SegmentationMask") and (anno_file.format == "zarr"):
-        return _read_labels_annotation_file(anno_file, anno=anno, tomogram=tomogram)
+    format = annotation_file.format
+    if (shape_type in ("Point", "OrientedPoint")) and (format == "ndjson"):
+        return _read_points_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
+    elif (shape_type == "SegmentationMask") and (format == "zarr"):
+        return _read_labels_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
     else:
-        logger.warning("Found unsupported annotation file: %s, %s. Skipping.", shape.shape_type, anno_file.format)
+        logger.warning("Attempted read unsupported annotation file: %s, %s. Skipping.", shape_type, format)
 
 
 def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:

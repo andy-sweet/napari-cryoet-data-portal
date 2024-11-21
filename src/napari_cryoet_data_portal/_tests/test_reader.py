@@ -2,12 +2,13 @@ import pytest
 from typing import Callable
 
 import numpy as np
-from cryoet_data_portal import Annotation
+from cryoet_data_portal import Annotation, AnnotationFile
 from napari import Viewer
 from napari.layers import Points
 
 from napari_cryoet_data_portal._reader import (
     read_annotation,
+    read_annotation_file,
     read_annotation_files,
     read_points_annotations_ndjson,
     read_tomogram_ome_zarr,
@@ -61,10 +62,19 @@ def test_read_annotation(annotation_with_points: Annotation):
 
 
 def test_read_annotation_files(annotation_with_points: Annotation):
-    layers = list(read_annotation_files(annotation_with_points))
+    with pytest.warns(DeprecationWarning):
+        layers = list(read_annotation_files(annotation_with_points))
 
     assert len(layers) == 1
     data, attrs, layer_type = layers[0]
+    assert len(data) > 0
+    assert len(attrs["name"]) > 0
+    assert layer_type == "points"
+
+
+def test_read_annotation_file(annotation_file_with_points: AnnotationFile):
+    data, attrs, layer_type = read_annotation_file(annotation_file_with_points)
+
     assert len(data) > 0
     assert len(attrs["name"]) > 0
     assert layer_type == "points"
