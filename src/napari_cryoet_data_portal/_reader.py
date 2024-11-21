@@ -233,40 +233,7 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     return data, attributes, layer_type
 
 
-def read_annotation_files(annotation: Annotation, *, tomogram: Optional[Tomogram] = None) -> Generator[FullLayerData, None, None]:
-    """Reads multiple annotation layers.
-
-    Parameters
-    ----------
-    annotation : Annotation
-        The tomogram annotation.
-    tomogram : Tomogram, optional
-        The associated tomogram, which may be used for other metadata.
-
-    Yields
-    ------
-    napari layer data tuple
-        The data, attributes, and type name of the layer that would be
-        returned by `Points.as_layer_data_tuple` or `Labels.as_layer_data_tuple`.
-
-    Examples
-    --------
-    >>> client = Client()
-    >>> annotation = client.find_one(Annotation)
-    >>> for data, attrs, typ in read_annotation_files(annotation):
-            layer = Layer.create(data, attrs, typ)
-    """
-    warnings.warn(
-        "read_annotation is deprecated from v0.4.0 because of Annotation schema changes. "
-        "Use read_annotation_file instead.",
-        category=DeprecationWarning)
-    for s in annotation.annotation_shapes:
-        for f in s.annotation_files:
-            if layer_data := read_annotation_file(f, tomogram=tomogram):
-                yield layer_data
-
-
-def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[Tomogram] = None) -> Optional[FullLayerData]:
+def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[Tomogram] = None) -> FullLayerData:
     """Reads a layer from an annotation file.
 
     Parameters
@@ -282,12 +249,16 @@ def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[
         The data, attributes, and type name of the layer that would be
         returned by `Points.as_layer_data_tuple` or `Labels.as_layer_data_tuple`.
 
+    Raises
+    ------
+    If the annotation file format is not supported.
+
     Examples
     --------
     >>> client = Client()
     >>> annotation_file = client.find_one(AnnotationFile)
-    >>> if layer_data := read_annotation_file(annotation_file):
-            layer = Layer.create(*layer_data)
+    >>> layer_data = read_annotation_file(annotation_file):
+    >>> layer = Layer.create(*layer_data)
     """
     shape = annotation_file.annotation_shape
     shape_type = shape.shape_type
@@ -297,8 +268,7 @@ def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[
         return _read_points_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
     elif (shape_type == "SegmentationMask") and (format == "zarr"):
         return _read_labels_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
-    else:
-        logger.warning("Attempted read unsupported annotation file: %s, %s. Skipping.", shape_type, format)
+    raise Exception(f"Attempted read unsupported annotation file: {shape_type}, {format}.")
 
 
 def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
