@@ -251,14 +251,15 @@ def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[
 
     Raises
     ------
-    If the annotation file format is not supported.
+    ValueError
+        If the annotation file format is not supported.
 
     Examples
     --------
     >>> client = Client()
     >>> annotation_file = client.find_one(AnnotationFile)
-    >>> layer_data = read_annotation_file(annotation_file):
-    >>> layer = Layer.create(*layer_data)
+    >>> data, attrs, typ = read_annotation_file(annotation_file):
+    >>> layer = Layer.create(data, attrs, type)
     """
     shape = annotation_file.annotation_shape
     shape_type = shape.shape_type
@@ -268,7 +269,7 @@ def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[
         return _read_points_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
     elif (shape_type == "SegmentationMask") and (format == "zarr"):
         return _read_labels_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
-    raise Exception(f"Attempted read unsupported annotation file: {shape_type}, {format}.")
+    raise ValueError(f"Attempted to read unsupported annotation file: {shape_type}, {format}.")
 
 
 def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
