@@ -135,23 +135,35 @@ class OpenWidget(QGroupBox):
         image_scale = image_layer[1]["scale"]
         yield _handle_image_at_resolution(image_layer, resolution)
 
-        # A single client is not thread safe, so we need a new instance for each query.
+        # A single client is not thread safe, so we need a new instance here,
+        # rather than relying on the instance stored in objects passed through.
         client = Client(self._uri)
-        anno_files = AnnotationFile.find(
+        
+        points_files = AnnotationFile.find(
             client,
             [
-                AnnotationFile.tomogram_voxel_spacing_id
-                == tomogram.tomogram_voxel_spacing_id
+                AnnotationFile.tomogram_voxel_spacing_id == tomogram.tomogram_voxel_spacing_id,
+                AnnotationFile.alignment_id == tomogram.alignment_id,
+                AnnotationFile.annotation_shape.shape_type._in({"Point", "OrientedPoint"}),
+                AnnotationFile.format == "ndjson"
             ]
         )
+        for file in points_files:
+            if layer := read_annotation_file(file, tomogram=tomogram):
+                yield _handle_points_at_scale(layer, image_scale)
 
-        for anno_file in anno_files:
-            if layer := read_annotation_file(anno_file, tomogram=tomogram):
-                if layer[2] == "labels":
-                    layer = _handle_image_at_resolution(layer, resolution)
-                elif layer[2] == "points":
-                    layer = _handle_points_at_scale(layer, image_scale)
-                yield layer
+        mask_files = AnnotationFile.find(
+            client,
+            [
+                AnnotationFile.tomogram_voxel_spacing_id == tomogram.tomogram_voxel_spacing_id,
+                AnnotationFile.alignment_id == tomogram.alignment_id,
+                AnnotationFile.annotation_shape.shape_type == "SegmentationMask",
+                AnnotationFile.format == "zarr"
+            ]
+        )
+        for file in mask_files:
+            if layer := read_annotation_file(file, tomogram=tomogram):
+                yield _handle_image_at_resolution(layer, resolution)
 
     def _onLayerLoaded(self, layer_data: FullLayerData) -> None:
         logger.debug("OpenWidget._onLayerLoaded")
@@ -213,17 +225,17 @@ def _is_napari_version_less_than(version: str) -> bool:
     try:
         import napari
     except ImportError:
-        logger.warn("Failed to import napari")
+        logger.warning("Failed to import napari")
         return False
     try:
         from packaging.version import InvalidVersion, Version
     except ImportError:
-        logger.warn("Failed to import packaging")
+        logger.warning("Failed to import packaging")
         return False
     try:
         actual_version = Version(napari.__version__)
     except InvalidVersion:
-        logger.warn(
+        logger.warning(
             "Failed to parse actual napari version from %s ",
             napari.__version__,
         )
@@ -231,6 +243,6 @@ def _is_napari_version_less_than(version: str) -> bool:
     try:
         target_version = Version(version)
     except InvalidVersion:
-        logger.warn("Failed to parse target napari version from %s", version)
+        logger.warning("Failed to parse target napari version from %s", version)
         return False
     return actual_version < target_version

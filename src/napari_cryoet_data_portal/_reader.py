@@ -221,7 +221,7 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
         for f in s.annotation_files:
             point_paths.append(f.https_path)
     if len(point_paths) > 1:
-        logger.warn("Found more than one points annotation. Using the first.")
+        logger.warning("Found more than one points annotation. Using the first.")
     data, attributes, layer_type = read_points_annotations_ndjson(point_paths[0])
     name = annotation.object_name
     if tomogram is None:
@@ -270,7 +270,7 @@ def read_annotation_file(anno_file: AnnotationFile, *, tomogram: Optional[Tomogr
     elif (shape.shape_type == "SegmentationMask") and (anno_file.format == "zarr"):
         return _read_labels_annotation_file(anno_file, anno=anno, tomogram=tomogram)
     else:
-        logger.warn("Found unsupported annotation file: %s, %s. Skipping.", shape.shape_type, anno_file.format)
+        logger.warning("Found unsupported annotation file: %s, %s. Skipping.", shape.shape_type, anno_file.format)
 
 
 def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
