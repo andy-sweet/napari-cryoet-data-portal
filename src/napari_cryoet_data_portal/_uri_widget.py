@@ -1,5 +1,12 @@
 from typing import Optional, Tuple
 
+from cryoet_data_portal import (
+    Client,
+    Dataset,
+    Run,
+    Tomogram,
+    TomogramVoxelSpacing,
+)
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QComboBox,
@@ -10,14 +17,12 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from cryoet_data_portal import Client, Dataset, Run, Tomogram, TomogramVoxelSpacing
 
 from napari_cryoet_data_portal._filter import Filter, make_filter
 from napari_cryoet_data_portal._logging import logger
 from napari_cryoet_data_portal._progress_widget import ProgressWidget
 
-
-GRAPHQL_URI = "https://graphql.cryoetdataportal.cziscience.com/v1/graphql"
+GRAPHQL_URI = "https://graphql.cryoetdataportal.czscience.com/graphql"
 
 
 class UriWidget(QGroupBox):
@@ -42,7 +47,7 @@ class UriWidget(QGroupBox):
         self._uri_edit.setReadOnly(True)
         self._uri_edit.setCursorPosition(0)
         self._uri_edit.setPlaceholderText("Enter a URI to CryoET portal data")
-        
+
         filter_ids_layout = QHBoxLayout()
         filter_ids_layout.setContentsMargins(0, 0, 0, 0)
         self._filter_ids_type = QComboBox()
@@ -54,7 +59,7 @@ class UriWidget(QGroupBox):
         self._filter_ids_edit.setToolTip("Comma separated IDs of interest")
         filter_ids_layout.addWidget(self._filter_ids_type)
         filter_ids_layout.addWidget(self._filter_ids_edit)
-        
+
         self._progress: ProgressWidget = ProgressWidget(
             work=self._connect,
             returnCallback=self._onConnected,

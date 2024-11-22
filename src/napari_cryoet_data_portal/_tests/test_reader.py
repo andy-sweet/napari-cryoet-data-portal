@@ -2,24 +2,24 @@ import pytest
 from typing import Callable
 
 import numpy as np
-from cryoet_data_portal import Annotation
+from cryoet_data_portal import Annotation, AnnotationFile
 from napari import Viewer
 from napari.layers import Points
 
 from napari_cryoet_data_portal._reader import (
     read_annotation,
-    read_annotation_files,
+    read_annotation_file,
     read_points_annotations_ndjson,
     read_tomogram_ome_zarr,
 )
 
 CLOUDFRONT_URI = "https://files.cryoetdataportal.cziscience.com"
-TOMOGRAM_DIR = f"{CLOUDFRONT_URI}/10000/TS_026/Tomograms/VoxelSpacing13.480"
-ANNOTATION_FILE = f"{TOMOGRAM_DIR}/Annotations/101-cytosolic_ribosome-1.0_point.ndjson"
+TOMOGRAM_DIR = f"{CLOUDFRONT_URI}/10000/TS_026/Reconstructions/VoxelSpacing13.480"
+ANNOTATION_FILE = f"{TOMOGRAM_DIR}/Annotations/101/cytosolic_ribosome-1.0_point.ndjson"
 
 
 def test_read_tomogram_ome_zarr():
-    uri = f"{TOMOGRAM_DIR}/CanonicalTomogram/TS_026.zarr"
+    uri = f"{TOMOGRAM_DIR}/Tomograms/100/TS_026.zarr"
 
     data, attrs, layer_type = read_tomogram_ome_zarr(uri)
 
@@ -60,11 +60,9 @@ def test_read_annotation(annotation_with_points: Annotation):
     assert layer_type == "points"
 
 
-def test_read_annotation_files(annotation_with_points: Annotation):
-    layers = list(read_annotation_files(annotation_with_points))
+def test_read_annotation_file(annotation_file_with_points: AnnotationFile):
+    data, attrs, layer_type = read_annotation_file(annotation_file_with_points)
 
-    assert len(layers) == 1
-    data, attrs, layer_type = layers[0]
     assert len(data) > 0
     assert len(attrs["name"]) > 0
     assert layer_type == "points"

@@ -212,15 +212,16 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     """
     warnings.warn(
         "read_annotation is deprecated from v0.4.0 because of Annotation schema changes. "
-        "Use read_annotation_files instead.",
+        "Use read_annotation_file instead.",
         category=DeprecationWarning)
-    point_paths = tuple(
-        f.https_path
-        for f in annotation.files
-        if f.shape_type == "Point"
-    )
+    point_paths = []
+    for s in annotation.annotation_shapes:
+        if s.shape_type != "Point":
+            continue
+        for f in s.annotation_files:
+            point_paths.append(f.https_path)
     if len(point_paths) > 1:
-        logger.warn("Found more than one points annotation. Using the first.")
+        logger.warning("Found more than one points annotation. Using the first.")
     data, attributes, layer_type = read_points_annotations_ndjson(point_paths[0])
     name = annotation.object_name
     if tomogram is None:
@@ -232,40 +233,47 @@ def read_annotation(annotation: Annotation, *, tomogram: Optional[Tomogram] = No
     return data, attributes, layer_type
 
 
-def read_annotation_files(annotation: Annotation, *, tomogram: Optional[Tomogram] = None) -> Generator[FullLayerData, None, None]:
-    """Reads multiple annotation layers.
+def read_annotation_file(annotation_file: AnnotationFile, *, tomogram: Optional[Tomogram] = None) -> FullLayerData:
+    """Reads a layer from an annotation file.
 
     Parameters
     ----------
-    annotation : Annotation
-        The tomogram annotation.
+    annotation_file : AnnotationFile
+        The tomogram annotation file.
     tomogram : Tomogram, optional
         The associated tomogram, which may be used for other metadata.
 
-    Yields
+    Returns
     -------
     napari layer data tuple
         The data, attributes, and type name of the layer that would be
         returned by `Points.as_layer_data_tuple` or `Labels.as_layer_data_tuple`.
 
+    Raises
+    ------
+    ValueError
+        If the annotation file format is not supported.
+
     Examples
     --------
     >>> client = Client()
-    >>> annotation = client.find_one(Annotation)
-    >>> for data, attrs, typ in read_annotation_files(annotation):
-            layer = Layer.create(data, attrs, typ)
+    >>> annotation_file = client.find_one(AnnotationFile)
+    >>> data, attrs, typ = read_annotation_file(annotation_file):
+    >>> layer = Layer.create(data, attrs, type)
     """
-    for f in annotation.files:
-        if (f.shape_type in ("Point", "OrientedPoint")) and (f.format == "ndjson"):
-            yield _read_points_annotation_file(f, anno=annotation, tomogram=tomogram)
-        elif (f.shape_type == "SegmentationMask") and (f.format == "zarr"):
-            yield _read_labels_annotation_file(f, anno=annotation, tomogram=tomogram)
-        else:
-            logger.warn("Found unsupported annotation file: %s, %s. Skipping.", f.shape_type, f.format)
+    shape = annotation_file.annotation_shape
+    shape_type = shape.shape_type
+    anno = shape.annotation
+    format = annotation_file.format
+    if (shape_type in ("Point", "OrientedPoint")) and (format == "ndjson"):
+        return _read_points_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
+    elif (shape_type == "SegmentationMask") and (format == "zarr"):
+        return _read_labels_annotation_file(annotation_file, anno=anno, tomogram=tomogram)
+    raise ValueError(f"Attempted to read unsupported annotation file: {shape_type}, {format}.")
 
 
 def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
-    assert anno_file.shape_type in ("Point", "OrientedPoint")
+    assert anno_file.annotation_shape.shape_type in ("Point", "OrientedPoint")
     assert anno_file.format == "ndjson"
     data, attributes, layer_type = read_points_annotations_ndjson(anno_file.https_path)
     name = anno.object_name
@@ -279,7 +287,7 @@ def _read_points_annotation_file(anno_file: AnnotationFile, *, anno: Annotation,
 
 
 def _read_labels_annotation_file(anno_file: AnnotationFile, *, anno: Annotation, tomogram: Optional[Tomogram]) -> FullLayerData:
-    assert anno_file.shape_type == "SegmentationMask"
+    assert anno_file.annotation_shape.shape_type == "SegmentationMask"
     assert anno_file.format == "zarr"
     data, attributes, _ = read_tomogram_ome_zarr(anno_file.https_path)
     name = anno.object_name

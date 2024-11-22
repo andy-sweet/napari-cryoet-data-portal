@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Generator, Optional, Tuple
 
 import numpy as np
-from cryoet_data_portal import Annotation, Client, Tomogram
+from cryoet_data_portal import AnnotationFile, Client, Tomogram
 from npe2.types import FullLayerData
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
@@ -20,7 +20,7 @@ from qtpy.QtWidgets import (
 from napari_cryoet_data_portal._logging import logger
 from napari_cryoet_data_portal._progress_widget import ProgressWidget
 from napari_cryoet_data_portal._reader import (
-    read_annotation_files,
+    read_annotation_file,
     read_tomogram,
 )
 
@@ -135,25 +135,35 @@ class OpenWidget(QGroupBox):
         image_scale = image_layer[1]["scale"]
         yield _handle_image_at_resolution(image_layer, resolution)
 
-        # Looking up tomogram.tomogram_voxel_spacing.annotations triggers a query
-        # using the client from where the tomogram was found.
-        # A single client is not thread safe, so we need a new instance for each query.
+        # A single client is not thread safe, so we need a new instance here,
+        # rather than relying on the instance stored in objects passed through.
         client = Client(self._uri)
-        annotations = Annotation.find(
+        
+        points_files = AnnotationFile.find(
             client,
             [
-                Annotation.tomogram_voxel_spacing_id
-                == tomogram.tomogram_voxel_spacing_id
-            ],
+                AnnotationFile.tomogram_voxel_spacing_id == tomogram.tomogram_voxel_spacing_id,
+                AnnotationFile.alignment_id == tomogram.alignment_id,
+                AnnotationFile.annotation_shape.shape_type._in({"Point", "OrientedPoint"}),
+                AnnotationFile.format == "ndjson"
+            ]
         )
+        for file in points_files:
+            if layer := read_annotation_file(file, tomogram=tomogram):
+                yield _handle_points_at_scale(layer, image_scale)
 
-        for annotation in annotations:
-            for layer in read_annotation_files(annotation, tomogram=tomogram):
-                if layer[2] == "labels":
-                    layer = _handle_image_at_resolution(layer, resolution)
-                elif layer[2] == "points":
-                    layer = _handle_points_at_scale(layer, image_scale)
-                yield layer
+        mask_files = AnnotationFile.find(
+            client,
+            [
+                AnnotationFile.tomogram_voxel_spacing_id == tomogram.tomogram_voxel_spacing_id,
+                AnnotationFile.alignment_id == tomogram.alignment_id,
+                AnnotationFile.annotation_shape.shape_type == "SegmentationMask",
+                AnnotationFile.format == "zarr"
+            ]
+        )
+        for file in mask_files:
+            if layer := read_annotation_file(file, tomogram=tomogram):
+                yield _handle_image_at_resolution(layer, resolution)
 
     def _onLayerLoaded(self, layer_data: FullLayerData) -> None:
         logger.debug("OpenWidget._onLayerLoaded")
@@ -215,17 +225,17 @@ def _is_napari_version_less_than(version: str) -> bool:
     try:
         import napari
     except ImportError:
-        logger.warn("Failed to import napari")
+        logger.warning("Failed to import napari")
         return False
     try:
         from packaging.version import InvalidVersion, Version
     except ImportError:
-        logger.warn("Failed to import packaging")
+        logger.warning("Failed to import packaging")
         return False
     try:
         actual_version = Version(napari.__version__)
     except InvalidVersion:
-        logger.warn(
+        logger.warning(
             "Failed to parse actual napari version from %s ",
             napari.__version__,
         )
@@ -233,6 +243,6 @@ def _is_napari_version_less_than(version: str) -> bool:
     try:
         target_version = Version(version)
     except InvalidVersion:
-        logger.warn("Failed to parse target napari version from %s", version)
+        logger.warning("Failed to parse target napari version from %s", version)
         return False
     return actual_version < target_version

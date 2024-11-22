@@ -1,4 +1,4 @@
-from cryoet_data_portal import Client, Run, Tomogram, TomogramVoxelSpacing
+from cryoet_data_portal import Client, Tomogram, TomogramVoxelSpacing
 import pytest
 from pytestqt.qtbot import QtBot
 
@@ -45,7 +45,9 @@ def test_load_lists_data(widget: ListingWidget, qtbot: QtBot):
 
 def test_load_with_run_filter_lists_only_that_data(widget: ListingWidget, qtbot: QtBot):
     client = Client()
-    run = client.find_one(Run)
+    # Find a run that has at least one tomogram.
+    tomogram = client.find_one(Tomogram)
+    run = tomogram.run
     assert run is not None
     filter = RunFilter(ids=(run.id,))
 
